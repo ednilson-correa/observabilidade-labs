@@ -1,0 +1,13 @@
+# Variáveis locais (use sempre o .env.example como modelo)
+.env
+*.env
+!.env.example
+
+# Dados persistidos pelos labs
+data/
+volumes/
+
+# SO / editores
+.DS_Store
+.idea/
+.vscode/
