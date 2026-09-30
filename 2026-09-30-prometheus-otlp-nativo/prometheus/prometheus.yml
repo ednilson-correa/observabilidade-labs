@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Novo no Prometheus 3.15: o nível de log vem da configuração e pode ser
+# alterado com um simples reload (POST /-/reload ou SIGHUP), sem restart.
+# O flag --log.level foi depreciado. Valores: debug, info, warn, error.
+runtime:
+  log_level: info
+
+# Como o Prometheus traduz métricas recebidas via OTLP.
+otlp:
+  # Atributos de recurso promovidos a labels em TODAS as séries do serviço.
+  # Promova só o que você realmente usa em filtros/agrupamentos (cardinalidade!).
+  promote_resource_attributes:
+    - service.namespace
+    - deployment.environment.name
+  # Mantém service.name/service.namespace/service.instance.id também no
+  # target_info (além de virarem os labels job/instance).
+  keep_identifying_resource_attributes: true
+  # Padrão: UnderscoreEscapingWithSuffixes (loja.pagamentos.processados ->
+  # loja_pagamentos_processados_total).
+  translation_strategy: UnderscoreEscapingWithSuffixes
+
+storage:
+  tsdb:
+    # Amostras OTLP podem chegar fora de ordem (batching, retries).
+    out_of_order_time_window: 30m
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Métricas internas do próprio Collector (pipeline saudável?)
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8888"]

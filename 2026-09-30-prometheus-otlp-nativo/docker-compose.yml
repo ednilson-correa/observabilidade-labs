@@ -1,0 +1,110 @@
+name: prometheus-otlp-nativo
+
+services:
+  # ---------------------------------------------------------------------------
+  # Geradores de telemetria (simulam dois serviços instrumentados com OTel SDK)
+  # ---------------------------------------------------------------------------
+  checkout:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.162.0
+    command:
+      - metrics
+      - --otlp-endpoint=otel-collector:4317
+      - --otlp-insecure
+      - --duration=inf
+      - --rate=1
+      - --metric-type=Histogram
+      - --aggregation-temporality=delta
+      - --otlp-metric-name=loja.checkout.latencia
+      - --otlp-attributes=service.name="checkout"
+      - --otlp-attributes=service.namespace="loja"
+      - --otlp-attributes=service.version="1.4.2"
+      - --otlp-attributes=deployment.environment.name="lab"
+      - --otlp-attributes=host.name="vm-checkout-01"
+      - --telemetry-attributes=http.route="/checkout"
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  pagamentos:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.162.0
+    command:
+      - metrics
+      - --otlp-endpoint=otel-collector:4317
+      - --otlp-insecure
+      - --duration=inf
+      - --rate=2
+      - --metric-type=Sum
+      - --otlp-metric-name=loja.pagamentos.processados
+      - --otlp-attributes=service.name="pagamentos"
+      - --otlp-attributes=service.namespace="loja"
+      - --otlp-attributes=service.version="2.0.0"
+      - --otlp-attributes=deployment.environment.name="lab"
+      - --otlp-attributes=host.name="vm-pagamentos-01"
+      - --telemetry-attributes=pagamento.metodo="pix"
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # OpenTelemetry Collector: recebe OTLP, converte delta -> cumulativo e envia
+  # para o receptor OTLP nativo do Prometheus (sem exporter "prometheus").
+  # ---------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Prometheus 3.15 com o receptor OTLP habilitado
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
+      - --web.enable-otlp-receiver
+      - --web.enable-lifecycle
+      - --enable-feature=promql-experimental-functions
+    volumes:
+      # Monta o diretório (e não o arquivo) para que edições no host sejam
+      # vistas pelo container ao fazer reload.
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana com datasource e dashboard provisionados
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
