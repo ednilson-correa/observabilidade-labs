@@ -21,4 +21,4 @@ Cada lab fica em `AAAA-MM-DD-<tema>/` com `README.md`, `docker-compose.yml` e as
 
 | Data | Lab | Tema |
 |------|-----|------|
-| — | — | Em breve |
+| 2026-09-30 | [prometheus-otlp-nativo](./2026-09-30-prometheus-otlp-nativo/) | OTLP nativo no Prometheus 3.15 + OTel Collector (`delta_to_cumulative`, `info()`, `runtime.log_level`) |
