@@ -1,0 +1,92 @@
+name: tempo-traceql-amostragem
+
+services:
+  # ---------------------------------------------------------------------------
+  # Gerador de traces (Python, só biblioteca padrão): frontend -> checkout,
+  # com taxa e % de erro conhecidos para conferir os números do Tempo.
+  # ---------------------------------------------------------------------------
+  loadgen:
+    image: python:3.13.7-slim
+    command: ["python", "-u", "/app/loadgen.py"]
+    environment:
+      OTLP_ENDPOINT: http://otel-collector:4318
+      TRACES_POR_SEGUNDO: ${TRACES_POR_SEGUNDO:-20}
+      PERCENTUAL_ERRO: ${PERCENTUAL_ERRO:-5}
+    volumes:
+      - ./loadgen:/app:ro
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # OTel Collector: span_metrics sobre 100% dos spans (referência) e
+  # probabilistic_sampler (proportional) antes de mandar para o Tempo.
+  # ---------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    environment:
+      SAMPLING_PERCENTAGE: ${SAMPLING_PERCENTAGE:-25}
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+    depends_on:
+      - tempo
+      - prometheus
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana Tempo 3.1 em modo monolítico (sem Kafka)
+  # ---------------------------------------------------------------------------
+  tempo:
+    image: grafana/tempo:3.1.0
+    command: ["-target=all", "-config.file=/etc/tempo.yaml"]
+    user: "0"   # lab: evita problema de permissão no volume local
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "${TEMPO_PORT:-3200}:3200"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Prometheus: recebe o span_metrics via OTLP (a "verdade" sem amostragem)
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana com datasources (Tempo + Prometheus) e dashboard provisionados
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - tempo
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  tempo-data:
+  prometheus-data:

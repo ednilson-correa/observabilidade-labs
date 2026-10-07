@@ -12,3 +12,7 @@ volumes/
 .idea/
 .vscode/
 *:Zone.Identifier
+
+# Python
+__pycache__/
+*.pyc
