@@ -1,0 +1,13 @@
+apiVersion: 1
+
+# Só Prometheus: o Jaeger 2.21+ removeu os endpoints HTTP v1 que o
+# datasource Jaeger do Grafana historicamente consulta (jaeger#9260).
+# Os traces deste lab você explora direto na UI do Jaeger (porta 16686).
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

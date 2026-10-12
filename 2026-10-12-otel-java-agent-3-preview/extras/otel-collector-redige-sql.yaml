@@ -1,0 +1,41 @@
+# Dica da semana: redigir literais de texto em db.query.text no Collector.
+#
+# Contexto: nas convenções estáveis de banco (padrão no Java agent 3.0),
+# o SQL de PreparedStatement NÃO é sanitizado. Literais escritos direto no
+# SQL ('PREP-42', 'ativo'...) aparecem no span. Este processor troca cada
+# literal entre aspas simples por "?".
+#
+# Testado com otelcol-contrib 0.162.0 + Java agent 2.32.0
+# (OTEL_INSTRUMENTATION_COMMON_V3_PREVIEW=true):
+#   antes:  ... WHERE cliente = 'PREP-42' AND valor > ?
+#   depois: ... WHERE cliente = ? AND valor > ?
+#
+# Para usar no lab: copie o bloco "transform/redige-sql" para
+# otel-collector.yaml e coloque-o no pipeline de traces ANTES do batch.
+# Este arquivo também roda sozinho (útil para testar):
+#   otelcol-contrib validate --config=extras/otel-collector-redige-sql.yaml
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: ${env:OTLP_HTTP_ENDPOINT:-0.0.0.0:4318}
+
+processors:
+  transform/redige-sql:
+    error_mode: ignore
+    trace_statements:
+      # Só literais de texto. Números (LIMIT 10) continuam visíveis.
+      - replace_pattern(span.attributes["db.query.text"], "'[^']*'", "?")
+  batch: {}
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [transform/redige-sql, batch]
+      exporters: [debug]
