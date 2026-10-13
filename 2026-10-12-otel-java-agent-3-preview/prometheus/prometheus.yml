@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Métricas do Java agent e do span_metrics chegam via OTLP
+# (flag --web.enable-otlp-receiver no docker-compose.yml).
+otlp:
+  translation_strategy: UnderscoreEscapingWithSuffixes
+  # service.name/service.instance.id viram job/instance; estes viram labels
+  # em target_info (use info() ou join para trazê-los para as séries).
+  promote_resource_attributes:
+    - deployment.environment.name
+
+storage:
+  tsdb:
+    out_of_order_time_window: 30m
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Métricas internas do Collector
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8888"]

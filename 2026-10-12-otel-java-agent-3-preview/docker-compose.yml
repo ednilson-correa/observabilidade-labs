@@ -1,0 +1,158 @@
+name: otel-java-agent-3-preview
+
+# A MESMA aplicação, o MESMO agent (2.32.0 = RC do 3.0), a MESMA carga.
+# Muda só a configuração do agent em cada instância:
+#   app-legado -> padrão 2.x (convenções de banco antigas)
+#   app-dup    -> dual emission: atributos antigos + novos (/dup)
+#   app-v3     -> preview do 3.0 (OTEL_INSTRUMENTATION_COMMON_V3_PREVIEW=true)
+
+x-app: &app
+  build:
+    context: ./app
+  depends_on:
+    postgres:
+      condition: service_healthy
+    otel-collector:
+      condition: service_started
+  restart: unless-stopped
+
+x-app-env: &app-env
+  JDBC_URL: jdbc:postgresql://postgres:5432/pedidos?currentSchema=public
+  DB_USER: app
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-troque-me}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_METRIC_EXPORT_INTERVAL: "15000"
+  OTEL_LOGS_EXPORTER: none
+  OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=lab
+
+services:
+  # ---------------------------------------------------------------------------
+  # Banco de dados
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-troque-me}
+      POSTGRES_DB: pedidos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d pedidos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # As 3 instâncias da API (mesma imagem, configs diferentes do agent)
+  # ---------------------------------------------------------------------------
+  app-legado:
+    <<: *app
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: pedidos-legado
+    ports:
+      - "${APP_LEGADO_PORT:-8081}:8080"
+
+  app-dup:
+    <<: *app
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: pedidos-dup
+      # Passo 1 do blog: umbrella desligado + atributos antigos e novos juntos
+      OTEL_INSTRUMENTATION_COMMON_V3_PREVIEW: "false"
+      OTEL_SEMCONV_STABILITY_OPT_IN: database/dup,code/dup
+      OTEL_SEMCONV_STABILITY_PREVIEW: messaging/dup
+    ports:
+      - "${APP_DUP_PORT:-8082}:8080"
+
+  app-v3:
+    <<: *app
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: pedidos-v3
+      # Passo 2 do blog: comportamento padrão previsto para o 3.0
+      OTEL_INSTRUMENTATION_COMMON_V3_PREVIEW: "true"
+    ports:
+      - "${APP_V3_PORT:-8083}:8080"
+
+  # ---------------------------------------------------------------------------
+  # Gerador de carga (Python, só biblioteca padrão)
+  # ---------------------------------------------------------------------------
+  loadgen:
+    image: python:3.13.7-slim
+    command: ["python", "-u", "/app/loadgen.py"]
+    environment:
+      ALVOS: http://app-legado:8080,http://app-dup:8080,http://app-v3:8080
+      REQUISICOES_POR_SEGUNDO: ${REQUISICOES_POR_SEGUNDO:-10}
+    volumes:
+      - ./loadgen:/app:ro
+    depends_on:
+      - app-legado
+      - app-dup
+      - app-v3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # OTel Collector: traces -> Jaeger + span_metrics; métricas -> Prometheus
+  # ---------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - jaeger
+      - prometheus
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Jaeger 2.22 (all-in-one, armazenamento em memória) para olhar os spans
+  # ---------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    environment:
+      JAEGER_LISTEN_HOST: 0.0.0.0
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Prometheus com receptor OTLP nativo
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana com datasource e dashboard provisionados
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-troque-me}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
