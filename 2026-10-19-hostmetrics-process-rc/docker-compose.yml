@@ -1,0 +1,107 @@
+name: hostmetrics-process-rc
+
+# O MESMO Collector (contrib 0.163.1), a MESMA config, o MESMO processo de carga.
+# Muda só o feature gate de cada instância:
+#   otelcol-legado    -> sem gates: métricas e atributos legados
+#   otelcol-transicao -> EmitV1SystemConventions: legado + RC juntos
+#   otelcol-rc        -> EmitV1 + DontEmitV0: só as métricas RC (o futuro "stable")
+
+x-otelcol: &otelcol
+  image: otel/opentelemetry-collector-contrib:0.163.1
+  # pid: host faz o /proc do container mostrar os processos do host
+  # (é assim que o hostmetrics enxerga o processo "carga").
+  pid: host
+  # root para ler /proc/<pid>/io de processos de outros usuários
+  user: "0:0"
+  volumes:
+    - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+  depends_on:
+    - prometheus
+    - carga
+  restart: unless-stopped
+
+x-otelcol-env: &otelcol-env
+  COLLECTION_INTERVAL: ${COLLECTION_INTERVAL:-10s}
+  PROMETHEUS_OTLP_ENDPOINT: http://prometheus:9090/api/v1/otlp/v1/metrics
+
+services:
+  # ---------------------------------------------------------------------------
+  # Processo de carga: CPU, threads, FDs, disco, page faults (só stdlib)
+  # O binário do Python é copiado como "carga" para dar nome ao processo.
+  # ---------------------------------------------------------------------------
+  carga:
+    image: python:3.13.7-slim
+    command: ["sh", "-c", "cp /usr/local/bin/python3.13 /usr/local/bin/carga && exec carga -u /app/carga.py"]
+    environment:
+      THREADS: ${CARGA_THREADS:-6}
+    volumes:
+      - ./carga:/app:ro
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Os três coletores
+  # ---------------------------------------------------------------------------
+  otelcol-legado:
+    <<: *otelcol
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    environment:
+      <<: *otelcol-env
+      MODO: legado
+
+  otelcol-transicao:
+    <<: *otelcol
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+      - --feature-gates=scraper.process.EmitV1SystemConventions
+    environment:
+      <<: *otelcol-env
+      MODO: transicao
+
+  otelcol-rc:
+    <<: *otelcol
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+      - --feature-gates=scraper.process.EmitV1SystemConventions,scraper.process.DontEmitV0SystemConventions
+    environment:
+      <<: *otelcol-env
+      MODO: rc
+
+  # ---------------------------------------------------------------------------
+  # Prometheus com receptor OTLP nativo
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana com datasource e dashboard provisionados
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-troque-me}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:

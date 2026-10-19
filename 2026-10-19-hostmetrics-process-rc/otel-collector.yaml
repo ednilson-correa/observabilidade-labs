@@ -1,0 +1,68 @@
+# Mesmo arquivo para os três coletores. O que muda entre eles é só a
+# flag --feature-gates passada no docker-compose.yml e a variável MODO.
+#
+#   legado    -> sem gates (comportamento padrão do 0.163)
+#   transicao -> scraper.process.EmitV1SystemConventions
+#   rc        -> EmitV1SystemConventions + DontEmitV0SystemConventions
+
+receivers:
+  host_metrics:
+    collection_interval: ${env:COLLECTION_INTERVAL:-10s}
+    # "host_metrics" é o nome novo do "hostmetrics" (o antigo virou alias
+    # deprecated). Com "pid: host" no compose, /proc mostra os processos do host.
+    scrapers:
+      process:
+        # Só o processo de carga do lab (o binário se chama "carga").
+        include:
+          names: ["^carga$"]
+          match_type: regexp
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        mute_process_user_error: true
+        mute_process_cgroup_error: true
+        # Métricas opcionais (desligadas por padrão). Repare que só os nomes
+        # LEGADOS aparecem aqui: com o gate EmitV1SystemConventions o scraper
+        # passa a emitir também as versões RC, sem mudar esta config.
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.threads:
+            enabled: true
+          process.open_file_descriptors:
+            enabled: true
+          process.context_switches:
+            enabled: true
+          process.paging.faults:
+            enabled: true
+
+processors:
+  resource:
+    attributes:
+      # service.name vira o label "job" no Prometheus (OTLP nativo)
+      - key: service.name
+        value: hostmetrics-${env:MODO}
+        action: upsert
+      - key: modo
+        value: ${env:MODO}
+        action: upsert
+  batch:
+    timeout: 5s
+
+exporters:
+  otlp_http/prometheus:
+    metrics_endpoint: ${env:PROMETHEUS_OTLP_ENDPOINT:-http://prometheus:9090/api/v1/otlp/v1/metrics}
+    tls:
+      insecure: true
+
+service:
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: none
+  pipelines:
+    metrics:
+      receivers: [host_metrics]
+      processors: [resource, batch]
+      exporters: [otlp_http/prometheus]

@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Métricas chegam dos três coletores via OTLP
+# (flag --web.enable-otlp-receiver no docker-compose.yml).
+otlp:
+  translation_strategy: UnderscoreEscapingWithSuffixes
+  # service.name -> job; estes atributos de recurso viram labels nas séries
+  promote_resource_attributes:
+    - modo
+    - process.executable.name
+    - process.pid
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
