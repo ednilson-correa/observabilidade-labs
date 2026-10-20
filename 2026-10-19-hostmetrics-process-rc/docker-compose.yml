@@ -13,6 +13,8 @@ x-otelcol: &otelcol
   pid: host
   # root para ler /proc/<pid>/io de processos de outros usuários
   user: "0:0"
+  # Atenção: process.disk.io vem de /proc/<pid>/io, que só existe em kernels
+  # com CONFIG_TASK_IO_ACCOUNTING. O kernel do WSL2 não tem (ver README).
   volumes:
     - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
   depends_on:

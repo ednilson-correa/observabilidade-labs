@@ -48,6 +48,7 @@ grep -rlE 'by \((state|direction|type)\)|process_threads|process_open_file_descr
 
 - Unidades entre chaves (`{count}` → `{context_switch}`) mudam no OTLP, mas não aparecem no nome do Prometheus.
 - No 0.163, `hostmetrics` e `otlphttp` já são aliases deprecated de `host_metrics` e `otlp_http`.
+- `process.disk.io` depende de `/proc/<pid>/io`, que não existe no kernel do WSL2 (`cat /proc/self/io` falha). Lá a métrica simplesmente não aparece, sem erro no log.
 
 ## Fonte
 

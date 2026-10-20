@@ -105,6 +105,9 @@ def main():
     print("\nResumo das consultas legadas:")
     for modo, r in resumo.items():
         print(f"  {modo:<10} OK={r['OK']}  SEM DADOS={r['SEM DADOS']}  SILENCIOSO={r['SILENCIOSO']}")
+    if not any("process_disk_io_bytes_total" in m["metricas"] for m in resultado["modos"].values()):
+        print("\nAviso: process.disk.io não chegou em nenhum modo. O kernel provavelmente não tem")
+        print("/proc/<pid>/io (é o caso do WSL2). Confira com: cat /proc/self/io")
 
 
 if __name__ == "__main__":
