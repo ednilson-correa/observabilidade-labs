@@ -338,7 +338,7 @@
     {
       "id": 7,
       "type": "stat",
-      "title": "Séries de CPU sem label state (RC)",
+      "title": "CPU sem label state (RC)",
       "description": "Séries de process_cpu_time no modo RC sem o label state. O nome continua igual, então o painel legado não quebra: ele soma tudo numa linha só.",
       "datasource": {
         "type": "prometheus",
@@ -418,7 +418,7 @@
         "x": 0,
         "y": 7,
         "w": 12,
-        "h": 8
+        "h": 11
       },
       "targets": [
         {
@@ -544,7 +544,7 @@
         "x": 12,
         "y": 7,
         "w": 6,
-        "h": 8
+        "h": 11
       },
       "targets": [
         {
@@ -652,7 +652,7 @@
         "x": 18,
         "y": 7,
         "w": 6,
-        "h": 8
+        "h": 11
       },
       "targets": [
         {
@@ -754,7 +754,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 15,
+        "y": 18,
         "w": 24,
         "h": 1
       },
@@ -771,9 +771,9 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 16,
+        "y": 19,
         "w": 12,
-        "h": 8
+        "h": 11
       },
       "targets": [
         {
@@ -879,9 +879,9 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 16,
+        "y": 19,
         "w": 6,
-        "h": 8
+        "h": 11
       },
       "targets": [
         {
@@ -987,9 +987,9 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 16,
+        "y": 19,
         "w": 6,
-        "h": 8
+        "h": 11
       },
       "targets": [
         {
@@ -1091,7 +1091,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 30,
         "w": 24,
         "h": 1
       },
@@ -1101,14 +1101,14 @@
       "id": 17,
       "type": "timeseries",
       "title": "I/O de disco por disk_io_direction",
-      "description": "rate(process_disk_io_bytes_total[1m]) agrupado pelo atributo novo disk.io.direction (antes: direction).",
+      "description": "rate(process_disk_io_bytes_total[1m]) agrupado pelo atributo novo disk.io.direction (antes: direction). Vazio em todos os modos? O kernel não tem /proc/<pid>/io (caso do WSL2): confira com cat /proc/self/io.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "x": 0,
-        "y": 25,
+        "y": 31,
         "w": 8,
         "h": 8
       },
@@ -1215,7 +1215,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 25,
+        "y": 31,
         "w": 8,
         "h": 8
       },
@@ -1323,7 +1323,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 25,
+        "y": 31,
         "w": 8,
         "h": 8
       },
@@ -1426,7 +1426,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 39,
         "w": 24,
         "h": 1
       },
@@ -1443,7 +1443,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 40,
         "w": 24,
         "h": 10
       },

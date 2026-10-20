@@ -50,10 +50,11 @@ Arquivos:
 | `scripts/verificar.py` | roda as consultas de um dashboard legado nos três modos |
 | `grafana/` | datasource e dashboard provisionados |
 
-Dois detalhes da config:
+Três detalhes da config (e um do kernel):
 
 - **Só os nomes legados estão em `metrics:`**. Com o gate `EmitV1SystemConventions`, o scraper emite a versão RC das métricas habilitadas sem você mudar a config (ex.: habilitar `process.threads` já traz `process.thread.count`).
 - **`host_metrics` e `otlp_http`** são os nomes novos dos componentes. No 0.163.1 os nomes `hostmetrics` e `otlphttp` ainda funcionam, mas o log avisa: *alias is deprecated*.
+- **I/O de disco depende do kernel.** `process.disk.io` é lido de `/proc/<pid>/io`, que só existe em kernels com contabilidade de I/O por processo (`CONFIG_TASK_IO_ACCOUNTING`). O kernel do WSL2 (testado: `6.18.54.1-microsoft-standard-WSL2`) **não tem**: `cat /proc/self/io` dá *No such file or directory*. Nesse caso a métrica não é emitida em nenhum modo, sem erro no log (`mute_process_io_error`), e o lab mostra 8 / 10 / 8 métricas em vez de 9 / 11 / 9. Num Linux comum (VM, bare metal, nuvem) ela aparece normalmente.
 
 ## Como subir
 
@@ -75,13 +76,21 @@ Espere uns 3 minutos para acumular dados (o `rate()` usa janela de 1 minuto).
 
    Saída esperada (uma linha por métrica que manteve o nome e mudou atributo): `process.context_switches`, `process.cpu.time`, `process.cpu.utilization`, `process.disk.io` e `process.paging.faults`, com o texto `only latest will be emitted with combined attributes`.
 
-2. Rode a verificação:
+2. Confira se o seu kernel expõe I/O por processo:
+
+   ```bash
+   cat /proc/self/io
+   ```
+
+   Se der *No such file or directory* (caso do WSL2), o painel "I/O de disco" fica vazio nos três modos e o resultado esperado muda (veja "Resultado no WSL2" abaixo).
+
+3. Rode a verificação:
 
    ```bash
    python3 scripts/verificar.py
    ```
 
-3. Abra o dashboard: <http://localhost:3000/d/lab-hostmetrics-process-rc>
+4. Abra o dashboard: <http://localhost:3000/d/lab-hostmetrics-process-rc>
 
 ## Resultado do teste
 
@@ -110,6 +119,24 @@ Resumo das consultas legadas:
   transicao  OK=9  SEM DADOS=0  SILENCIOSO=0
   rc         OK=1  SEM DADOS=3  SILENCIOSO=5
 ```
+
+### Resultado no WSL2 (sem `/proc/<pid>/io`)
+
+Executado em 20/10/2026 no WSL2 (Rocky 10, kernel `6.18.54.1-microsoft-standard-WSL2`) com `docker compose up`:
+
+```
+modo        nomes process_*   séries
+legado                    8       14
+transicao                10       16
+rc                        8       14
+
+Resumo das consultas legadas:
+  legado     OK=8  SEM DADOS=1  SILENCIOSO=0
+  transicao  OK=8  SEM DADOS=1  SILENCIOSO=0
+  rc         OK=1  SEM DADOS=4  SILENCIOSO=4
+```
+
+A única diferença é o painel de I/O de disco, que fica sem dados em todos os modos. O resto bate com o resultado acima.
 
 Como ler:
 
@@ -141,10 +168,15 @@ Validado no ambiente de preparo (sem Docker registry disponível):
 - fluxo completo com os **binários oficiais**: carga → 3 coletores → Prometheus OTLP; `scripts/verificar.py` com a saída acima;
 - todas as consultas do dashboard rodadas no Prometheus, retornando dados.
 
-NÃO validado aqui:
+Validado depois, no WSL2 (Rocky 10 + Docker Engine), em 19 e 20/10/2026:
 
-- `docker compose up` de verdade (imagens não puderam ser baixadas) — em especial `pid: host` + `user: "0:0"` no container do Collector e o nome do processo `carga` dentro da imagem `python:3.13.7-slim`;
-- renderização do dashboard no Grafana 13.2.4 (o Grafana não pôde ser executado).
+- `docker compose up -d --build` com as imagens fixas, `pid: host` e o processo `carga` visível para os três coletores;
+- dashboard renderizado no Grafana 13.2.4;
+- `scripts/verificar.py` com o resultado da seção "Resultado no WSL2" (sem `process.disk.io`, porque o kernel do WSL2 não tem `/proc/<pid>/io`).
+
+NÃO validado:
+
+- `process.disk.io` via Docker num Linux com `/proc/<pid>/io` (aqui ele foi validado só com os binários rodando direto no host).
 
 ## Print do dashboard para as postagens
 
