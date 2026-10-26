@@ -1,0 +1,17 @@
+# Prometheus no MESMO host do Perses (localhost). É o caso clássico de VM única.
+# Salvo antes do upgrade (no 0.54), ele continua no banco do 0.55,
+# mas o proxy passa a responder 403.
+kind: GlobalDatasource
+metadata:
+  name: prom-local
+spec:
+  default: false
+  display:
+    name: "Prometheus (localhost)"
+  plugin:
+    kind: PrometheusDatasource
+    spec:
+      proxy:
+        kind: HTTPProxy
+        spec:
+          url: http://localhost:9090

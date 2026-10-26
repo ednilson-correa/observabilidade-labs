@@ -1,0 +1,11 @@
+# Perses 0.55.0 com autenticação ligada e SEM encryption_key.
+# Esperado: o processo se recusa a subir (o 0.54 subia com uma chave padrão e pública).
+database:
+  file:
+    folder: /perses
+    extension: yaml
+security:
+  enable_auth: true
+  authentication:
+    providers:
+      enable_native: true

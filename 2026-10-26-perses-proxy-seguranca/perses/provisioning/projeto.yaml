@@ -1,0 +1,6 @@
+kind: Project
+metadata:
+  name: lab
+spec:
+  display:
+    name: "Lab: proxy do Perses 0.54 x 0.55"

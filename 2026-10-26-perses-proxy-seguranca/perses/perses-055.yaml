@@ -1,0 +1,11 @@
+# Perses 0.55.0 com a configuração PADRÃO.
+# O proxy recusa loopback, link-local/metadata de nuvem, endereços reservados,
+# IPs em notação não canônica e URLs com credenciais. Rede privada continua liberada.
+database:
+  file:
+    folder: /perses
+    extension: yaml
+provisioning:
+  interval: 1m
+  folders:
+    - /etc/perses/provisioning

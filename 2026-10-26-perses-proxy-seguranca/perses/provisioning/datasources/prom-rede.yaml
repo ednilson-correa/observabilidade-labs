@@ -1,0 +1,16 @@
+# Prometheus pelo nome do serviço (rede privada do Docker, 172.16.0.0/12):
+# permitido por padrão no 0.54 e no 0.55.
+kind: GlobalDatasource
+metadata:
+  name: prom-rede
+spec:
+  default: true
+  display:
+    name: "Prometheus (rede privada)"
+  plugin:
+    kind: PrometheusDatasource
+    spec:
+      proxy:
+        kind: HTTPProxy
+        spec:
+          url: http://prometheus:9090

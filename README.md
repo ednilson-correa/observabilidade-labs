@@ -25,3 +25,4 @@ Cada lab fica em `AAAA-MM-DD-<tema>/` com `README.md`, `docker-compose.yml` e as
 | 2026-10-04 | [tempo-traceql-amostragem](./2026-10-04-tempo-traceql-amostragem/) | Tempo 3.1: TraceQL metrics com aritmética e `with(extrapolate=true)` + amostragem proporcional no OTel Collector |
 | 2026-10-12 | [otel-java-agent-3-preview](./2026-10-12-otel-java-agent-3-preview/) | Java agent 2.32.0 (RC do 3.0): convenções de banco legado x `/dup` x 3.0, `db.client.operation.duration` e redação de SQL no Collector |
 | 2026-10-19 | [hostmetrics-process-rc](./2026-10-19-hostmetrics-process-rc/) | Collector contrib 0.163.1: métricas RC do `hostmetrics/process` (legado x transição x RC) e a quebra silenciosa de dashboards |
+| 2026-10-26 | [perses-proxy-seguranca](./2026-10-26-perses-proxy-seguranca/) | Perses 0.55: proxy de datasources contra SSRF (localhost 403, metadata de nuvem, `allowed_networks`, CSP) e `encryption_key` obrigatória com auth — 0.54 x 0.55 x 0.55 liberado |

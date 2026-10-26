@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # métricas do gerador de tráfego: códigos HTTP do proxy de cada Perses
+  - job_name: trafego
+    static_configs:
+      - targets: ["trafego:8000"]

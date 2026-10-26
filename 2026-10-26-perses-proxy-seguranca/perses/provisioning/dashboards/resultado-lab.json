@@ -1,0 +1,870 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "resultado-lab",
+    "project": "lab"
+  },
+  "spec": {
+    "display": {
+      "name": "Perses 0.54 x 0.55 · proxy de datasources",
+      "description": "Lab 2026-10-26: o hardening do proxy (SSRF) do Perses 0.55 na prática."
+    },
+    "duration": "15m",
+    "refreshInterval": "10s",
+    "panels": {
+      "s054local": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "0.54 · localhost OK",
+            "description": "Percentual de respostas HTTP 200 do proxy do Perses 0.54 para o datasource http://localhost:9090 (último minuto)."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "thresholds": {
+                "defaultColor": "#6e8cff",
+                "steps": []
+              },
+              "colorMode": "value",
+              "sparkline": {
+                "color": "#6e8cff",
+                "width": 1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "100 * sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-054\",datasource=\"prom-local\",code=\"200\"}[1m])) / sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-054\",datasource=\"prom-local\"}[1m])) or vector(0)"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "s055local": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "0.55 · localhost 403",
+            "description": "Percentual de respostas HTTP 403 (destino não permitido) do Perses 0.55 com a config padrão para o MESMO datasource salvo antes do upgrade."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "thresholds": {
+                "defaultColor": "#f0643c",
+                "steps": []
+              },
+              "colorMode": "value",
+              "sparkline": {
+                "color": "#f0643c",
+                "width": 1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "100 * sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055\",datasource=\"prom-local\",code=\"403\"}[1m])) / sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055\",datasource=\"prom-local\"}[1m])) or vector(0)"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "s055lib": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "0.55 liberado · OK",
+            "description": "Perses 0.55 com datasource.proxy.allowed_networks = 127.0.0.0/8 e ::1/128."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "thresholds": {
+                "defaultColor": "#3ccf91",
+                "steps": []
+              },
+              "colorMode": "value",
+              "sparkline": {
+                "color": "#3ccf91",
+                "width": 1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "100 * sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055-liberado\",datasource=\"prom-local\",code=\"200\"}[1m])) / sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055-liberado\",datasource=\"prom-local\"}[1m])) or vector(0)"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "srede": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Rede privada · OK",
+            "description": "Percentual de HTTP 200 para http://prometheus:9090 (rede privada do Docker) somando as três instâncias. Rede privada continua liberada por padrão."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "thresholds": {
+                "defaultColor": "#8a94b0",
+                "steps": []
+              },
+              "colorMode": "value",
+              "sparkline": {
+                "color": "#8a94b0",
+                "width": 1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "100 * sum(rate(lab_perses_proxy_requests_total{datasource=\"prom-rede\",code=\"200\"}[1m])) / sum(rate(lab_perses_proxy_requests_total{datasource=\"prom-rede\"}[1m]))"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "csp054": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "CSP sandbox · 0.54",
+            "description": "As respostas do proxy trazem Content-Security-Policy: sandbox? (última resposta 200)"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal",
+                "decimalPlaces": 0,
+                "shortValues": false
+              },
+              "thresholds": {
+                "defaultColor": "#6e8cff",
+                "steps": []
+              },
+              "colorMode": "value",
+              "mappings": [
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "value": "0",
+                    "result": {
+                      "value": "ausente",
+                      "color": "#6e8cff"
+                    }
+                  }
+                },
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "value": "1",
+                    "result": {
+                      "value": "presente",
+                      "color": "#6e8cff"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "max(lab_perses_proxy_csp_sandbox{instancia=\"perses-054\"})"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "csp055": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "CSP sandbox · 0.55",
+            "description": "Mesma verificação no Perses 0.55 (padrão)."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal",
+                "decimalPlaces": 0,
+                "shortValues": false
+              },
+              "thresholds": {
+                "defaultColor": "#f0643c",
+                "steps": []
+              },
+              "colorMode": "value",
+              "mappings": [
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "value": "0",
+                    "result": {
+                      "value": "ausente",
+                      "color": "#f0643c"
+                    }
+                  }
+                },
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "value": "1",
+                    "result": {
+                      "value": "presente",
+                      "color": "#f0643c"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "max(lab_perses_proxy_csp_sandbox{instancia=\"perses-055\"})"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "tslocal": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Proxy → http://localhost:9090 (req/s por resultado)",
+            "description": "Taxa de respostas por instância e código HTTP para o datasource no mesmo host (séries empilhadas)."
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "requests/sec",
+                  "decimalPlaces": 2
+                }
+              },
+              "visual": {
+                "display": "line",
+                "lineWidth": 2,
+                "areaOpacity": 0.45,
+                "connectNulls": false,
+                "stack": "all"
+              },
+              "querySettings": [
+                {
+                  "queryIndex": 0,
+                  "colorMode": "fixed",
+                  "colorValue": "#6e8cff"
+                },
+                {
+                  "queryIndex": 1,
+                  "colorMode": "fixed",
+                  "colorValue": "#f0643c"
+                },
+                {
+                  "queryIndex": 2,
+                  "colorMode": "fixed",
+                  "colorValue": "#3ccf91"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-054\",datasource=\"prom-local\",code=\"200\"}[1m]))",
+                    "seriesNameFormat": "0.54 · HTTP 200"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055\",datasource=\"prom-local\",code=\"403\"}[1m]))",
+                    "seriesNameFormat": "0.55 padrão · HTTP 403"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055-liberado\",datasource=\"prom-local\",code=\"200\"}[1m]))",
+                    "seriesNameFormat": "0.55 liberado · HTTP 200"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "tsrede": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Proxy → http://prometheus:9090 (req/s por resultado)",
+            "description": "Rede privada: as três instâncias respondem 200 (séries empilhadas)."
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "requests/sec",
+                  "decimalPlaces": 2
+                }
+              },
+              "visual": {
+                "display": "line",
+                "lineWidth": 2,
+                "areaOpacity": 0.45,
+                "connectNulls": false,
+                "stack": "all"
+              },
+              "querySettings": [
+                {
+                  "queryIndex": 0,
+                  "colorMode": "fixed",
+                  "colorValue": "#6e8cff"
+                },
+                {
+                  "queryIndex": 1,
+                  "colorMode": "fixed",
+                  "colorValue": "#f0643c"
+                },
+                {
+                  "queryIndex": 2,
+                  "colorMode": "fixed",
+                  "colorValue": "#3ccf91"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-054\",datasource=\"prom-rede\",code=\"200\"}[1m]))",
+                    "seriesNameFormat": "0.54 · HTTP 200"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055\",datasource=\"prom-rede\",code=\"200\"}[1m]))",
+                    "seriesNameFormat": "0.55 padrão · HTTP 200"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_requests_total{instancia=\"perses-055-liberado\",datasource=\"prom-rede\",code=\"200\"}[1m]))",
+                    "seriesNameFormat": "0.55 liberado · HTTP 200"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "tslat": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Latência média do proxy · localhost",
+            "description": "rate(_sum)/rate(_count) do gerador de tráfego. O 403 é decidido antes de abrir conexão."
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "seconds",
+                  "decimalPlaces": 1
+                }
+              },
+              "visual": {
+                "display": "line",
+                "lineWidth": 2,
+                "areaOpacity": 0.15,
+                "connectNulls": false
+              },
+              "querySettings": [
+                {
+                  "queryIndex": 0,
+                  "colorMode": "fixed",
+                  "colorValue": "#6e8cff"
+                },
+                {
+                  "queryIndex": 1,
+                  "colorMode": "fixed",
+                  "colorValue": "#f0643c"
+                },
+                {
+                  "queryIndex": 2,
+                  "colorMode": "fixed",
+                  "colorValue": "#3ccf91"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_request_duration_seconds_sum{instancia=\"perses-054\",datasource=\"prom-local\"}[1m])) / sum(rate(lab_perses_proxy_request_duration_seconds_count{instancia=\"perses-054\",datasource=\"prom-local\"}[1m]))",
+                    "seriesNameFormat": "0.54"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_request_duration_seconds_sum{instancia=\"perses-055\",datasource=\"prom-local\"}[1m])) / sum(rate(lab_perses_proxy_request_duration_seconds_count{instancia=\"perses-055\",datasource=\"prom-local\"}[1m]))",
+                    "seriesNameFormat": "0.55 padrão"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "sum(rate(lab_perses_proxy_request_duration_seconds_sum{instancia=\"perses-055-liberado\",datasource=\"prom-local\"}[1m])) / sum(rate(lab_perses_proxy_request_duration_seconds_count{instancia=\"perses-055-liberado\",datasource=\"prom-local\"}[1m]))",
+                    "seriesNameFormat": "0.55 liberado"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "tsstatus": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Último código HTTP do proxy · localhost",
+            "description": "lab_perses_proxy_last_status: 200 = OK, 403 = destino não permitido, 0 = falha de conexão."
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal",
+                  "decimalPlaces": 0
+                },
+                "min": 0
+              },
+              "visual": {
+                "display": "line",
+                "lineWidth": 2,
+                "areaOpacity": 0.15,
+                "connectNulls": false
+              },
+              "querySettings": [
+                {
+                  "queryIndex": 0,
+                  "colorMode": "fixed",
+                  "colorValue": "#6e8cff"
+                },
+                {
+                  "queryIndex": 1,
+                  "colorMode": "fixed",
+                  "colorValue": "#f0643c"
+                },
+                {
+                  "queryIndex": 2,
+                  "colorMode": "fixed",
+                  "colorValue": "#3ccf91"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "max(lab_perses_proxy_last_status{instancia=\"perses-054\",datasource=\"prom-local\"})",
+                    "seriesNameFormat": "0.54"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "max(lab_perses_proxy_last_status{instancia=\"perses-055\",datasource=\"prom-local\"})",
+                    "seriesNameFormat": "0.55 padrão"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-rede"
+                    },
+                    "query": "max(lab_perses_proxy_last_status{instancia=\"perses-055-liberado\",datasource=\"prom-local\"})",
+                    "seriesNameFormat": "0.55 liberado"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "leia": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Como ler este dashboard"
+          },
+          "plugin": {
+            "kind": "Markdown",
+            "spec": {
+              "text": "**Mesmo banco, três Perses.** O datasource `prom-local` (`http://localhost:9090`) foi salvo antes do upgrade.\n\n- **0.54**: o proxy alcança o localhost → HTTP 200.\n- **0.55 padrão**: o mesmo datasource agora devolve **HTTP 403** (destino não permitido).\n- **0.55 liberado**: `allowed_networks: [127.0.0.0/8, ::1/128]` → volta o 200.\n\n`prom-rede` (`http://prometheus:9090`, rede privada) funciona nas três."
+            }
+          }
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Números-chave",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/s054local"
+              }
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/s055local"
+              }
+            },
+            {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/s055lib"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/srede"
+              }
+            },
+            {
+              "x": 16,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/csp054"
+              }
+            },
+            {
+              "x": 20,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/csp055"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Proxy de datasources por instância",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 9,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/tslocal"
+              }
+            },
+            {
+              "x": 9,
+              "y": 0,
+              "width": 9,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/tsrede"
+              }
+            },
+            {
+              "x": 18,
+              "y": 0,
+              "width": 6,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/leia"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Latência e status",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 7,
+              "content": {
+                "$ref": "#/spec/panels/tslat"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 7,
+              "content": {
+                "$ref": "#/spec/panels/tsstatus"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
