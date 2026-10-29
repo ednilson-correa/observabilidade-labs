@@ -1,0 +1,10 @@
+# Perses 0.54.0: comportamento ANTES do hardening.
+# O proxy de datasources alcança qualquer destino (inclusive localhost).
+database:
+  file:
+    folder: /perses
+    extension: yaml
+provisioning:
+  interval: 1m
+  folders:
+    - /etc/perses/provisioning

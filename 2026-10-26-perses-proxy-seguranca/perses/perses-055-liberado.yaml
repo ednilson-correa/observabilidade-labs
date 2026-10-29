@@ -1,0 +1,17 @@
+# Perses 0.55.0 com o loopback liberado EXPLICITAMENTE.
+# É a correção recomendada no guia de upgrade quando o datasource roda
+# no mesmo host do Perses. O metadata de nuvem (169.254.169.254) continua
+# bloqueado: liberar 127.0.0.0/8 não abre outros destinos.
+database:
+  file:
+    folder: /perses
+    extension: yaml
+provisioning:
+  interval: 1m
+  folders:
+    - /etc/perses/provisioning
+datasource:
+  proxy:
+    allowed_networks:
+      - "127.0.0.0/8"
+      - "::1/128"

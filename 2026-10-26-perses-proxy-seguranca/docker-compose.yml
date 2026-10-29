@@ -1,0 +1,114 @@
+name: perses-proxy-seguranca
+
+# "O host": o Prometheus e os três Perses compartilham o MESMO namespace de rede
+# (network_mode: service:prometheus). Para os Perses, http://localhost:9090 é o
+# Prometheus, exatamente como numa VM única. Por isso as portas dos Perses são
+# publicadas no serviço prometheus.
+#
+#   perses-054          -> 0.54.0, antes do hardening do proxy
+#   perses-055          -> 0.55.0 com a config padrão
+#   perses-055-liberado -> 0.55.0 com allowed_networks: [127.0.0.0/8, ::1/128]
+#
+# Os três começam com o MESMO banco (perses/seed): um datasource salvo em
+# http://localhost:9090 "antes do upgrade".
+
+x-perses: &perses
+  network_mode: "service:prometheus"
+  depends_on:
+    semente:
+      condition: service_completed_successfully
+    prometheus:
+      condition: service_started
+  restart: unless-stopped
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=1d
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "${PERSES_054_PORT:-8054}:8054"
+      - "${PERSES_055_PORT:-8055}:8055"
+      - "${PERSES_055_LIBERADO_PORT:-8056}:8056"
+    restart: unless-stopped
+
+  # Copia o banco "pré-upgrade" para o volume de cada Perses (só na primeira vez)
+  # e ajusta o dono para o usuário nonroot (65532) da imagem distroless.
+  semente:
+    image: python:3.13.7-slim
+    command:
+      - sh
+      - -c
+      - |
+        for d in /dados/perses-054 /dados/perses-055 /dados/perses-055-liberado; do
+          mkdir -p $$d/globaldatasources
+          cp -n /seed/*.yaml $$d/globaldatasources/
+          chown -R 65532:65532 $$d
+        done
+        echo "banco pré-upgrade copiado"
+    volumes:
+      - ./perses/seed:/seed:ro
+      - perses-054-data:/dados/perses-054
+      - perses-055-data:/dados/perses-055
+      - perses-055-liberado-data:/dados/perses-055-liberado
+
+  perses-054:
+    <<: *perses
+    image: persesdev/perses:v0.54.0
+    command: ["--config=/etc/perses/lab.yaml", "--web.listen-address=:8054"]
+    volumes:
+      - ./perses/perses-054.yaml:/etc/perses/lab.yaml:ro
+      - ./perses/provisioning:/etc/perses/provisioning:ro
+      - perses-054-data:/perses
+
+  perses-055:
+    <<: *perses
+    image: persesdev/perses:v0.55.0
+    command: ["--config=/etc/perses/lab.yaml", "--web.listen-address=:8055"]
+    volumes:
+      - ./perses/perses-055.yaml:/etc/perses/lab.yaml:ro
+      - ./perses/provisioning:/etc/perses/provisioning:ro
+      - perses-055-data:/perses
+
+  perses-055-liberado:
+    <<: *perses
+    image: persesdev/perses:v0.55.0
+    command: ["--config=/etc/perses/lab.yaml", "--web.listen-address=:8056"]
+    volumes:
+      - ./perses/perses-055-liberado.yaml:/etc/perses/lab.yaml:ro
+      - ./perses/provisioning:/etc/perses/provisioning:ro
+      - perses-055-liberado-data:/perses
+
+  # Teste à parte: auth ligada sem encryption_key -> o 0.55 se recusa a subir.
+  #   docker compose --profile auth-sem-chave run --rm perses-055-auth-sem-chave
+  perses-055-auth-sem-chave:
+    image: persesdev/perses:v0.55.0
+    profiles: ["auth-sem-chave"]
+    command: ["--config=/etc/perses/lab.yaml"]
+    volumes:
+      - ./perses/perses-055-auth-sem-chave.yaml:/etc/perses/lab.yaml:ro
+
+  # Gera tráfego no proxy dos três Perses e expõe as métricas do resultado.
+  trafego:
+    image: python:3.13.7-slim
+    command: ["python", "-u", "/app/trafego.py"]
+    environment:
+      INTERVALO: ${TRAFEGO_INTERVALO:-5}
+      ESPERA_INICIAL: "15"
+    volumes:
+      - ./trafego:/app:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  perses-054-data:
+  perses-055-data:
+  perses-055-liberado-data:

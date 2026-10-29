@@ -1,0 +1,263 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "saude-prometheus-localhost",
+    "project": "lab"
+  },
+  "spec": {
+    "display": {
+      "name": "Saúde do Prometheus (datasource em localhost)",
+      "description": "Dashboard 'legado' que usa o datasource prom-local. Funciona no 0.54 e no 0.55 liberado; no 0.55 padrão os painéis falham com 403."
+    },
+    "duration": "15m",
+    "refreshInterval": "10s",
+    "panels": {
+      "up": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Targets UP",
+            "description": "count(up == 1) via datasource http://localhost:9090"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal",
+                "decimalPlaces": 0,
+                "shortValues": false
+              },
+              "thresholds": {
+                "defaultColor": "#3ccf91",
+                "steps": []
+              },
+              "colorMode": "value",
+              "sparkline": {
+                "color": "#3ccf91",
+                "width": 1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-local"
+                    },
+                    "query": "count(up == 1)"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "series": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Séries na head",
+            "description": "prometheus_tsdb_head_series"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal",
+                "decimalPlaces": 0,
+                "shortValues": false
+              },
+              "thresholds": {
+                "defaultColor": "#6e8cff",
+                "steps": []
+              },
+              "colorMode": "value",
+              "sparkline": {
+                "color": "#6e8cff",
+                "width": 1
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-local"
+                    },
+                    "query": "prometheus_tsdb_head_series"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "amostras": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Amostras ingeridas (amostras/s)",
+            "description": "rate(prometheus_tsdb_head_samples_appended_total[1m])"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal",
+                  "decimalPlaces": 0
+                }
+              },
+              "visual": {
+                "display": "line",
+                "lineWidth": 2,
+                "areaOpacity": 0.15,
+                "connectNulls": false
+              },
+              "querySettings": [
+                {
+                  "queryIndex": 0,
+                  "colorMode": "fixed",
+                  "colorValue": "#6e8cff"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-local"
+                    },
+                    "query": "sum(rate(prometheus_tsdb_head_samples_appended_total[1m]))",
+                    "seriesNameFormat": "amostras/s"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "scrape": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Duração do scrape por job",
+            "description": "scrape_duration_seconds"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "seconds",
+                  "decimalPlaces": 3
+                }
+              },
+              "visual": {
+                "display": "line",
+                "lineWidth": 2,
+                "areaOpacity": 0.15,
+                "connectNulls": false
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": {
+                      "kind": "PrometheusDatasource",
+                      "name": "prom-local"
+                    },
+                    "query": "max by (job) (scrape_duration_seconds)",
+                    "seriesNameFormat": "{{job}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Prometheus via http://localhost:9090",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/up"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/series"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/amostras"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 24,
+              "height": 7,
+              "content": {
+                "$ref": "#/spec/panels/scrape"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
