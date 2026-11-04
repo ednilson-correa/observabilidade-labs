@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Compara as instâncias usando o Prometheus do lab. Só biblioteca padrão.
 
-uso: python3 scripts/verificar.py [--url http://localhost:9090] [--janela 10m] [--tempo <unix>]
-Depois de alguns minutos de carga, os números se estabilizam.
+uso: python3 scripts/verificar.py [--url http://localhost:9090] [--janela 5m] [--tempo <unix>]
+Rode com a carga ativa há mais tempo que a janela. Enquanto a janela ainda pega o
+início da série, rate() fica abaixo do valor real (linhas/s menor que LINHAS_SEG),
+embora a comparação entre as instâncias continue válida.
 """
 import argparse
 import json
@@ -16,7 +18,7 @@ JSON, PROTO, NOVA = "json-0.163.1", "protobuf-0.163.1", "protobuf-0.164.0"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://localhost:9090")
-    ap.add_argument("--janela", default="10m")
+    ap.add_argument("--janela", default="5m")
     ap.add_argument("--tempo")
     a = ap.parse_args()
 

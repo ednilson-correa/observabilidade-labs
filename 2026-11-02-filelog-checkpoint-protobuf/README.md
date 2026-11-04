@@ -49,7 +49,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Espere pelo menos 10 minutos para o `rate()` estabilizar.
+Espere pelo menos 10 minutos. Nos primeiros 5, os painéis sobem em rampa: é o `rate()` de 5 minutos ainda sem a janela completa, não um aumento real de custo.
 
 ## Como testar
 
@@ -102,6 +102,18 @@ O upgrade é transparente, como o anúncio diz. O problema está no passo 6:
 
 O passo 3 mostra outra mudança da 0.164.0: quem mantém `-filelog.protobufCheckpointEncoding` na linha de comando não sobe mais. A mensagem é `feature gate "filelog.protobufCheckpointEncoding" is stable, can not be disabled`.
 
+### Reprodução no WSL2
+
+Rodado com `docker compose`, em 02/11/2026:
+
+| Medida | JSON 0.163.1 | Protobuf 0.163.1 | Diferença | Protobuf 0.164.0 |
+|---|---|---|---|---|
+| CPU (núcleos) | 0,288 | 0,229 | **−20,7%** | 0,224 |
+| Memória alocada | 100,6 MB/s | 83,0 MB/s | **−17,5%** | 82,7 MB/s |
+| Checkpoint | 1.700.899 bytes | 1.064.000 bytes | **−37,4%** | 1.064.000 bytes |
+
+Essa rodada usou janela de 10 minutos com a série ainda incompleta (183,9 linhas/s em vez de 200), então os valores absolutos ficaram abaixo do regime. As porcentagens não são afetadas. O dashboard, com a janela já completa, mostrou 0,322, 0,256 e 0,250 núcleo. O `migracao.py` reproduziu toda a tabela de upgrade e rollback, incluindo as 3.600 linhas lidas.
+
 ## O que fazer
 
 - Na 0.156.0 ou mais nova, sem opt-out, você já usa protobuf. A 0.164.0 não traz esse ganho de novo.
@@ -113,13 +125,13 @@ O passo 3 mostra outra mudança da 0.164.0: quem mantém `-filelog.protobufCheck
 
 **Validado com binários oficiais:** configs com `promtool check config` e `otelcol-contrib validate`, carga real, as três instâncias, todas as queries do dashboard no Prometheus, os scripts `verificar.py`, `checkpoint.py` e `migracao.py --nativo`.
 
-**Validado só na sintaxe:** `docker compose config` e YAML/JSON.
+**Validado no WSL2 com `docker compose`:** a subida do lab, o dashboard no Grafana 13.3.0, `verificar.py`, o serviço `inspecao` e o `migracao.py` em modo Docker, nessa rodada executado com `sudo`.
 
-**Não validado:** a subida com `docker compose`, pois os registries estavam bloqueados no ambiente de teste; o modo Docker do `migracao.py`; o serviço `inspecao`; a renderização do dashboard no Grafana. Só testei a 0.147.0 entre as versões sem protobuf. Versões mais antigas devem ser conferidas no seu cenário.
+**Limites:** só testei a 0.147.0 entre as versões sem protobuf, sempre com `start_at: beginning`. Versões mais antigas devem ser conferidas no seu cenário.
 
 ## Print do dashboard no Grafana
 
-1. Com a carga rodando há pelo menos 15 minutos, abra <http://localhost:3000/d/lab-filelog-checkpoint?kiosk&theme=dark&from=now-15m&to=now>.
+1. Com a carga rodando há pelo menos 15 minutos, abra <http://localhost:3000/d/lab-filelog-checkpoint?kiosk&theme=dark&from=now-10m&to=now>. A janela de 10 minutos deixa de fora a rampa inicial.
 2. Ajuste a janela do navegador para cerca de 1600×900.
 3. Confira se os stat panels do topo têm valor. Eles usam `rate()` de 5 minutos.
 4. Salve o print fora do repositório.

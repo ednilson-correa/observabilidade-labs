@@ -41,7 +41,9 @@ class Coletor:
             env = dict(os.environ, STORAGE_DIR=f"{self.base}/storage", LOG_GLOB=f"{self.base}/logs/*.log",
                        METRICS_PORT=str(PORTA), INSTANCIA="migracao")
         else:
-            cmd = ["docker", "run", "--rm", "--name", "lab-migracao", "--user", "0:0",
+            cmd = ["docker", "run", "--rm", "--name", "lab-migracao",
+                   # mesmo usuário do script, para ele conseguir ler o checkpoint sem sudo
+                   "--user", f"{os.getuid()}:{os.getgid()}",
                    "-p", f"127.0.0.1:{PORTA}:{PORTA}", "-e", f"METRICS_PORT={PORTA}", "-e", "INSTANCIA=migracao",
                    "-v", f"{RAIZ}/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro",
                    "-v", f"{self.base}/logs:/logs:ro", "-v", f"{self.base}/storage:/var/lib/otelcol/file_storage",
