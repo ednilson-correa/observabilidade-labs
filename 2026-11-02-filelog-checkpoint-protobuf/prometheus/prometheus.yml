@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: otelcol
+    static_configs:
+      - targets: ["col-json:8888"]
+        labels: { instancia: "json-0.163.1" }
+      - targets: ["col-proto:8888"]
+        labels: { instancia: "protobuf-0.163.1" }
+      - targets: ["col-proto-164:8888"]
+        labels: { instancia: "protobuf-0.164.0" }

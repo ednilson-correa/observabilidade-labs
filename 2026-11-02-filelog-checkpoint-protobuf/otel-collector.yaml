@@ -1,0 +1,36 @@
+# A MESMA config para as três instâncias. O que muda entre elas é a versão do
+# Collector e, na instância JSON, a feature gate na linha de comando.
+extensions:
+  file_storage:
+    directory: ${env:STORAGE_DIR:-/var/lib/otelcol/file_storage}
+    create_directory: true
+
+receivers:
+  filelog:
+    include: ["${env:LOG_GLOB:-/logs/*.log}"]
+    start_at: beginning
+    storage: file_storage
+    poll_interval: 200ms   # o padrão: 5 checkpoints por segundo
+    max_concurrent_files: 1024
+    resource:
+      instancia: ${env:INSTANCIA:-sem-nome}
+
+exporters:
+  # Descarta tudo. Queremos medir o receiver, não o custo de exportar.
+  nop: {}
+
+service:
+  extensions: [file_storage]
+  telemetry:
+    metrics:
+      level: normal
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: ${env:METRICS_PORT:-8888}
+  pipelines:
+    logs:
+      receivers: [filelog]
+      exporters: [nop]
